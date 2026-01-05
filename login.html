@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #8D7B68; 
+            --secondary-color: #555;
+            --background-color: #FFF8E1;
+            --form-background: #FFF8E1;
+            --input-border: #C8B6A6;
+            --text-color: #333;
+            --error-color: #dc3545;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+        .form-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .form-box { width: 100%; max-width: 400px; }
+        .form-box h2 {
+            text-align: center; margin-bottom: 30px; font-weight: 600;
+            color: var(--primary-color); font-size: 2rem;
+        }
+        #registerForm { display: none; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .input-group, .submit-btn { animation-fill-mode: forwards; }
+        .input-group {
+            position: relative; margin-bottom: 25px; display: flex;
+            align-items: center; border: 1px solid var(--input-border);
+            border-radius: 8px; padding: 0 15px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            opacity: 0;
+        }
+        .input-group:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(141, 123, 104, 0.15); 
+        }
+        .input-group .icon {
+            width: 20px; height: 20px; fill: var(--secondary-color);
+            margin-right: 12px; transition: fill 0.3s;
+        }
+        .input-group:focus-within .icon { fill: var(--primary-color); }
+        .input-group input {
+            width: 100%; padding: 14px 0; border: none;
+            outline: none; background: transparent; font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .submit-btn {
+            width: 100%; padding: 14px; background-color: var(--primary-color);
+            color: white; border: none; border-radius: 8px;
+            font-size: 18px; font-weight: 500; cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-top: 10px; opacity: 0;
+        }
+        .submit-btn:hover { background-color: #6F6254; }
+        .submit-btn:active { transform: scale(0.98); }
+        .submit-btn:disabled { background-color: #A49585; cursor: not-allowed; }
+        .toggle-link { text-align: center; margin-top: 25px; font-size: 15px; }
+        .toggle-link a {
+            color: var(--primary-color); font-weight: 600;
+            text-decoration: none; cursor: pointer;
+        }
+        .error-message {
+            color: var(--error-color); font-size: 14px; text-align: center;
+            margin-top: 15px; min-height: 20px; opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .error-message.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <div class="form-box">
+            <!-- Login Form -->
+            <form id="loginForm">
+                <h2>Login</h2>
+                <div class="input-group">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M17.2,13.26a3.5,3.5,0,1,0-3.5-3.5A3.5,3.5,0,0,0,17.2,13.26Zm0,1.75a5.25,5.25,0,0,0-5.25,5.25,1.75,1.75,0,0,0,3.5,0,1.75,1.75,0,0,1,3.5,0,1.75,1.75,0,0,0,3.5,0A5.25,5.25,0,0,0,17.2,15.01Z"/></svg>
+                    <input type="tel" id="loginMobile" placeholder="Mobile Number" required>
+                </div>
+                <!-- Password field added for login -->
+                <div class="input-group">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M18,8a6,6,0,0,0-12,0v4H4v10H20V12H18ZM16,12H8V8a4,4,0,0,1,8,0Z"/></svg>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                </div>
+                <button type="submit" class="submit-btn">Login</button>
+                <p id="loginError" class="error-message"></p>
+                <p class="toggle-link">
+                    Don't have an account? <a id="show-register">Register</a>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm">
+                <h2>Register</h2>
+                <div class="input-group">
+                     <svg class="icon" viewBox="0 0 24 24"><path d="M12,12A4,4,0,1,0,8,8,4,4,0,0,0,12,12Zm0,2c-2.67,0-8,1.34-8,4v2H20V18C20,15.34,14.67,14,12,14Z"/></svg>
+                    <input type="text" id="registerName" placeholder="Your Name" required>
+                </div>
+                <div class="input-group">
+                     <svg class="icon" viewBox="0 0 24 24"><path d="M17.2,13.26a3.5,3.5,0,1,0-3.5-3.5A3.5,3.5,0,0,0,17.2,13.26Zm0,1.75a5.25,5.25,0,0,0-5.25,5.25,1.75,1.75,0,0,0,3.5,0,1.75,1.75,0,0,1,3.5,0,1.75,1.75,0,0,0,3.5,0A5.25,5.25,0,0,0,17.2,15.01Z"/></svg>
+                    <input type="tel" id="registerMobile" placeholder="Mobile Number" required>
+                </div>
+                <div class="input-group">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M18,8a6,6,0,0,0-12,0v4H4v10H20V12H18ZM16,12H8V8a4,4,0,0,1,8,0Z"/></svg>
+                    <input type="password" id="registerPassword" placeholder="Password" required>
+                </div>
+                <button type="submit" class="submit-btn">Register</button>
+                <p class="toggle-link">
+                    Already have an account? <a id="show-login">Login</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- YOUR FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBja7g6Qu-oOuygaHsknDWLbqEIGrRcrbM",
+            authDomain: "customer-5fe57.firebaseapp.com",
+            databaseURL: "https://customer-5fe57-default-rtdb.firebaseio.com",
+            projectId: "customer-5fe57",
+            storageBucket: "customer-5fe57.appspot.com", // Corrected storageBucket URL
+            messagingSenderId: "313701297597",
+            appId: "1:313701297597:web:13bdaf363660b9371db6d4",
+            measurementId: "G-Y281RRK750"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const showRegisterLink = document.getElementById('show-register');
+            const showLoginLink = document.getElementById('show-login');
+            const loginErrorMsg = document.getElementById('loginError');
+
+            function animateFormInputs(formElement) {
+                const elementsToAnimate = formElement.querySelectorAll('.input-group, .submit-btn');
+                elementsToAnimate.forEach((el, index) => {
+                    el.style.animation = `fadeInUp 0.5s ease ${index * 0.1}s forwards`;
+                });
+            }
+            animateFormInputs(loginForm);
+            
+            showRegisterLink.addEventListener('click', () => {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                animateFormInputs(registerForm);
+            });
+            showLoginLink.addEventListener('click', () => {
+                registerForm.style.display = 'none';
+                loginForm.style.display = 'block';
+                animateFormInputs(loginForm);
+            });
+
+            // --- Registration Logic with Firebase ---
+            registerForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const name = document.getElementById('registerName').value.trim();
+                const mobile = document.getElementById('registerMobile').value.trim();
+                const password = document.getElementById('registerPassword').value.trim();
+                const submitBtn = registerForm.querySelector('.submit-btn');
+
+                if (!name || !mobile || !password) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+
+                // A workaround to use mobile number with email/password auth
+                const email = mobile + '@noteapp.com';
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Registering...';
+
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        // Now, save additional user info to Realtime Database
+                        return database.ref('users/' + user.uid).set({
+                            name: name,
+                            mobile: mobile
+                        });
+                    })
+                    .then(() => {
+                        alert('Registration successful!');
+                        window.location.href = 'nots.html'; // Redirect to notes page
+                    })
+                    .catch((error) => {
+                        alert(`Error: ${error.message}`);
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Register';
+                    });
+            });
+
+            // --- Login Logic with Firebase ---
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const mobile = document.getElementById('loginMobile').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+                const submitBtn = loginForm.querySelector('.submit-btn');
+                
+                if (!mobile || !password) {
+                    alert('Please enter both mobile number and password.');
+                    return;
+                }
+                
+                const email = mobile + '@noteapp.com';
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Logging In...';
+                loginErrorMsg.classList.remove('show');
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        window.location.href = 'nots.html'; // Redirect to notes page
+                    })
+                    .catch((error) => {
+                        loginErrorMsg.textContent = 'Login failed. Please check your credentials.';
+                        loginErrorMsg.classList.add('show');
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Login';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
