@@ -1,374 +1,196 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Notepad Free</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Notepad Free</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for the icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
     <style>
+        /* --- Colors copied from nots.html for consistency --- */
         :root {
-            --bg-color: #FFF8E1; --card-bg-color: #FFF4D2; --text-color: #333; --subtle-text-color: #555; --border-color: #C8B6A6; --header-bg-color: #8D7B68; --header-text-color: #FFFFFF; --fab-bg-color: #8D7B68; --dialog-bg-color: #424242; --dialog-text-color: #FFFFFF; --dialog-button-color: #A5D6A7;
+            --bg-color: #FFF8E1; 
+            --card-bg-color: #FFF4D2; 
+            --text-color: #333; 
+            --subtle-text-color: #555; 
+            --border-color: #C8B6A6; 
+            --header-bg-color: #8D7B68; 
+            --header-text-color: #FFFFFF; 
+            --fab-bg-color: #8D7B68;
         }
-        body.dark-theme {
-            --bg-color: #121212; --card-bg-color: #1E1E1E; --text-color: #E0E0E0; --subtle-text-color: #9E9E9E; --border-color: #424242; --header-bg-color: #333333; --fab-bg-color: #555555; --dialog-bg-color: #2C2C2C; --dialog-button-color: #81C784;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); overflow: hidden; transition: background-color 0.3s, color 0.3s; }
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; transition: transform 0.35s ease-in-out, background-color 0.3s; background-color: var(--bg-color); }
-        #main-view { z-index: 10; }
-        #editor-view, #note-view { z-index: 20; transform: translateX(100%); }
-        #editor-view.active, #note-view.active { transform: translateX(0); }
-        .app-header { background-color: var(--header-bg-color); color: var(--header-text-color); display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; flex-shrink: 0; position: relative; }
-        .header-content, .header-left, .header-right { display: flex; align-items: center; }
-        .header-content { justify-content: space-between; width: 100%; }
-        .header-left, .header-right { gap: 16px; }
-        .header-title { font-size: 20px; font-weight: 500; }
-        .header-action-text { font-size: 14px; font-weight: bold; cursor: pointer; }
-        .icon-button { background: none; border: none; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; color: var(--header-text-color); }
-        .icon-button svg { width: 24px; height: 24px; }
-        #search-bar { display: none; width: 100%; align-items: center; }
-        #search-input { flex-grow: 1; background: transparent; border: none; color: white; font-size: 18px; padding: 8px; margin-left: 10px; outline: none; }
-        #search-input::placeholder { color: rgba(255, 255, 255, 0.7); }
-        .app-header.is-searching .header-content { display: none; }
-        .app-header.is-searching #search-bar { display: flex; }
-        .notes-container { padding: 10px; overflow-y: auto; flex-grow: 1; padding-bottom: 80px; }
-        #empty-notes-message { text-align: center; margin-top: 50px; color: var(--subtle-text-color); font-size: 18px; display: none; }
-        .note-card { background-color: var(--card-bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; cursor: pointer; transition: background-color 0.3s, border-color 0.3s; }
-        .note-title { font-size: 17px; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; color: var(--text-color); }
-        .note-timestamp { font-size: 12px; color: var(--subtle-text-color); text-align: right; pointer-events: none; }
-        .fab { position: absolute; bottom: 24px; right: 24px; width: 56px; height: 56px; background-color: var(--fab-bg-color); border-radius: 50%; border: none; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 15; }
-        .fab svg { width: 28px; height: 28px; color: white; }
-        .editor-container { flex-grow: 1; display: flex; flex-direction: column; }
-        .editor-paper { background-color: var(--card-bg-color); border-top: 1px solid var(--border-color); width: 100%; height: 100%; display: flex; flex-direction: column; }
-        #editor-title, #editor-text { background: transparent; border: none; padding: 16px; width: 100%; font-family: inherit; font-size: 16px; color: var(--text-color); outline: none; }
-        #editor-title { border-bottom: 1px solid var(--border-color); font-size: 18px; flex-shrink: 0; }
-        #editor-text { flex-grow: 1; resize: none; }
-        .view-container { flex-grow: 1; background-color: var(--card-bg-color); overflow-y: auto; padding: 20px; }
-        #note-view-title { font-size: 24px; font-weight: 600; margin-bottom: 16px; color: var(--text-color); border-bottom: 1px solid var(--border-color); padding-bottom: 12px; word-wrap: break-word; }
-        #note-view-content { font-size: 17px; line-height: 1.7; color: var(--text-color); white-space: pre-wrap; word-wrap: break-word; }
-        #context-menu { position: fixed; z-index: 1000; background-color: var(--dialog-bg-color); border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.3); display: none; flex-direction: column; padding: 6px 0; min-width: 130px; }
-        .context-menu-button { background: none; border: none; color: var(--dialog-text-color); padding: 10px 14px; text-align: left; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; }
-        .context-menu-button:hover { background-color: rgba(255,255,255,0.1); }
-        .context-menu-button svg { width: 18px; height: 18px; }
-        #context-menu.show { display: flex; }
-        #more-menu { position: absolute; top: 50px; right: 10px; z-index: 1002; background-color: var(--dialog-bg-color); color: var(--dialog-text-color); border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.3); display: none; flex-direction: column; padding: 6px 0; min-width: 180px; }
-        #more-menu.show { display: flex; }
-        .more-menu-item { background: none; border: none; color: var(--dialog-text-color); padding: 12px 16px; font-size: 14px; text-align: left; cursor: pointer; }
-        .more-menu-item:hover { background-color: rgba(255,255,255,0.1); }
-        #sidenav-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        #sidenav-overlay.visible { opacity: 1; pointer-events: auto; }
-        #sidenav { position: fixed; top: 0; left: 0; width: 280px; height: 100%; background-color: var(--bg-color); box-shadow: 4px 0 15px rgba(0,0,0,0.2); z-index: 2000; transform: translateX(-100%); transition: transform 0.3s ease; display: flex; flex-direction: column; padding: 20px; }
-        #sidenav.open { transform: translateX(0); }
-        #sidenav h2 { color: var(--header-bg-color); margin-bottom: 24px; }
-        .sidenav-item { background: none; border: none; color: var(--text-color); padding: 15px 10px; font-size: 16px; text-align: left; cursor: pointer; border-radius: 6px; width: 100%; }
-        .sidenav-item:hover { background-color: rgba(0,0,0,0.05); }
-        .theme-switcher { display: flex; justify-content: space-between; align-items: center; padding: 15px 10px; margin-top: auto; }
-        .theme-switcher span { font-size: 16px; color: var(--text-color); }
-        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--header-bg-color); }
-        input:checked + .slider:before { transform: translateX(22px); }
-        #sort-dialog-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1001; display: none; justify-content: center; align-items: center; }
-        #sort-dialog-overlay.visible { display: flex; }
-        #sort-dialog { background-color: var(--dialog-bg-color); color: var(--dialog-text-color); padding: 20px; border-radius: 8px; width: 90%; max-width: 320px; }
-        #sort-dialog h3 { margin-bottom: 16px; }
-        .sort-option { display: block; margin-bottom: 12px; }
-        .sort-option label { margin-left: 8px; }
-        .dialog-actions { text-align: right; margin-top: 20px; }
-        .dialog-button { background: none; border: none; color: var(--dialog-button-color); font-weight: bold; padding: 8px 12px; cursor: pointer; text-transform: uppercase; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color); /* Applied from nots.html */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        .welcome-container {
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .welcome-icon {
+            font-size: 8rem;
+            color: var(--header-bg-color); /* Applied from nots.html */
+            margin-bottom: 30px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-20px);
+            }
+            60% {
+                transform: translateY(-10px);
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-color); /* Applied from nots.html */
+            margin-bottom: 15px;
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: var(--subtle-text-color); /* Applied from nots.html */
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+        
+        /* --- Updated Button Styles --- */
+        .start-btn {
+            position: relative;
+            background-color: var(--fab-bg-color); /* Applied from nots.html */
+            color: var(--header-text-color); /* Applied from nots.html */
+            padding: 18px 60px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 15px rgba(141, 123, 104, 0.3); /* Shadow color updated */
+            min-width: 200px;
+        }
+
+        .start-btn:hover {
+            background-color: #6F6254; /* A slightly darker shade of the header color */
+            transform: translateY(-3px);
+        }
+
+        .start-btn:active {
+            transform: scale(0.98);
+        }
+        
+        /* --- Loader Styles --- */
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            display: none;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+        
+        .start-btn.loading .btn-text {
+            visibility: hidden;
+        }
+        
+        .start-btn.loading .loader {
+            display: block;
+        }
     </style>
 </head>
 <body>
 
-    <div id="sidenav-overlay"></div>
-    <aside id="sidenav">
-        <h2>Notepad Free</h2>
-        <button class="sidenav-item">Terms & Conditions</button>
-        <button class="sidenav-item">Privacy Policy</button>
-        <button class="sidenav-item">Calculator</button>
-        <div class="theme-switcher">
-            <span>Dark Mode</span>
-            <label class="switch"><input type="checkbox" id="theme-toggle-switch"><span class="slider"></span></label>
-        </div>
-    </aside>
-
-    <div id="main-view" class="screen active">
-        <header class="app-header">
-            <div class="header-content">
-                <div class="header-left">
-                    <button id="menu-icon-button" class="icon-button" aria-label="Menu"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
-                    <h1 class="header-title">Notepad Free</h1>
-                </div>
-                <div class="header-right">
-                    <button id="search-icon-button" class="icon-button" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
-                    <span id="sort-button" class="header-action-text">SORT</span>
-                    <button id="more-icon-button" class="icon-button" aria-label="More options"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
-                </div>
-            </div>
-            <div id="search-bar">
-                <button id="search-back-button" class="icon-button" aria-label="Back"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-                <input type="text" id="search-input" placeholder="Search notes...">
-            </div>
-        </header>
-        <main class="notes-container">
-            <div id="empty-notes-message">Create your first note!</div>
-        </main>
-        <button class="fab" aria-label="Add new note"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-    </div>
-
-    <div id="editor-view" class="screen">
-        <header class="app-header">
-            <div class="header-left"><button id="back-button" class="icon-button" aria-label="Back"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h1 class="header-title">Notepad Free</h1></div>
-            <div class="header-right"><button id="update-note-button" class="icon-button" aria-label="Save Note"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></button></div>
-        </header>
-        <main class="editor-container"><div class="editor-paper"><input type="text" id="editor-title" placeholder="Enter title..."><textarea id="editor-text" placeholder="Enter text..."></textarea></div></main>
-    </div>
-    
-    <div id="note-view" class="screen">
-        <header class="app-header">
-            <div class="header-left"><button id="note-view-back-button" class="icon-button" aria-label="Back"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h1 class="header-title">Note</h1></div>
-        </header>
-        <main class="view-container"><h2 id="note-view-title"></h2><p id="note-view-content"></p></main>
-    </div>
-
-    <div id="context-menu">
-        <button id="menu-edit" class="context-menu-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>Edit</button>
-        <button id="menu-share" class="context-menu-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>Share</button>
-        <button id="menu-delete" class="context-menu-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Delete</button>
-        <button id="menu-cancel" class="context-menu-button">Cancel</button>
-    </div>
-
-    <div id="sort-dialog-overlay">
-        <div id="sort-dialog">
-            <h3>Sort by</h3>
-            <label class="sort-option"><input type="radio" name="sort-option" value="edit-date-newest" checked> Edit date (Newest first)</label>
-            <label class="sort-option"><input type="radio" name="sort-option" value="edit-date-oldest"> Edit date (Oldest first)</label>
-            <label class="sort-option"><input type="radio" name="sort-option" value="title-az"> Title (A-Z)</label>
-            <label class="sort-option"><input type="radio" name="sort-option" value="title-za"> Title (Z-A)</label>
-            <label class="sort-option"><input type="radio" name="sort-option" value="creation-date-newest"> Creation date (Newest first)</label>
-            <label class="sort-option"><input type="radio" name="sort-option" value="creation-date-oldest"> Creation date (Oldest first)</label>
-            <div class="dialog-actions">
-                <button id="sort-cancel-button" class="dialog-button">Cancel</button>
-                <button id="sort-confirm-button" class="dialog-button">Sort</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="more-menu">
-        <button class="more-menu-item" onclick="alert('Exporting to Google Sheets...')">Export Google Sheet</button>
-        <button class="more-menu-item" onclick="alert('Exporting to Excel...')">Export Excel</button>
-        <button class="more-menu-item" onclick="alert('Downloading PDF...')">Download PDF</button>
+    <div class="welcome-container">
+        <i class="fa-solid fa-pen-to-square welcome-icon"></i>
+        <h1>Welcome to Notepad Free</h1>
+        <p>
+            Capture your thoughts, ideas, and tasks effortlessly. 
+            Stay organized and productive wherever you are.
+        </p>
+        
+        <button class="start-btn" id="startButton">
+            <span class="btn-text">Start</span>
+            <div class="loader"></div>
+        </button>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const body = document.body;
-            const mainHeader = document.querySelector('#main-view .app-header');
-            const editorView = document.getElementById('editor-view');
-            const noteView = document.getElementById('note-view');
-            const notesContainer = document.querySelector('.notes-container');
-            const emptyNotesMessage = document.getElementById('empty-notes-message');
-            const fab = document.querySelector('.fab');
-            const backButton = document.getElementById('back-button');
-            const updateNoteButton = document.getElementById('update-note-button');
-            const editorTitle = document.getElementById('editor-title');
-            const editorText = document.getElementById('editor-text');
-            const noteViewBackButton = document.getElementById('note-view-back-button');
-            const noteViewTitle = document.getElementById('note-view-title');
-            const noteViewContent = document.getElementById('note-view-content');
-            const searchIconButton = document.getElementById('search-icon-button');
-            const searchBar = document.getElementById('search-bar');
-            const searchInput = document.getElementById('search-input');
-            const searchBackButton = document.getElementById('search-back-button');
-            const sortButton = document.getElementById('sort-button');
-            const sortDialogOverlay = document.getElementById('sort-dialog-overlay');
-            const sortDialog = document.getElementById('sort-dialog');
-            const sortCancelButton = document.getElementById('sort-cancel-button');
-            const sortConfirmButton = document.getElementById('sort-confirm-button');
-            const contextMenu = document.getElementById('context-menu');
-            const moreIconButton = document.getElementById('more-icon-button');
-            const moreMenu = document.getElementById('more-menu');
-            const menuIconButton = document.getElementById('menu-icon-button');
-            const sidenav = document.getElementById('sidenav');
-            const sidenavOverlay = document.getElementById('sidenav-overlay');
-            const themeToggleSwitch = document.getElementById('theme-toggle-switch');
+        // =========================================================================
+        // ADD YOUR FIREBASE CONFIGURATION OBJECT HERE
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // =========================================================================
 
-            let notes = [];
-            let longPressTimer;
-            let activeNoteCardId = null;
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
-            const saveNotes = () => localStorage.setItem('notes-app-data', JSON.stringify(notes));
-            const loadNotes = () => {
-                const notesJSON = localStorage.getItem('notes-app-data');
-                notes = notesJSON ? JSON.parse(notesJSON) : [];
-            };
+        const startButton = document.getElementById('startButton');
 
-            const renderNotes = () => {
-                notesContainer.innerHTML = '';
-                if (notes.length === 0) {
-                    emptyNotesMessage.style.display = 'block';
-                } else {
-                    emptyNotesMessage.style.display = 'none';
-                    notes.forEach(note => {
-                        const timestampText = new Date(note.modifiedTimestamp).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) + ', ' + new Date(note.modifiedTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                        const noteCard = document.createElement('div');
-                        noteCard.className = 'note-card';
-                        noteCard.dataset.noteId = note.id;
-                        noteCard.innerHTML = `<div class="note-title">${note.title || note.content.substring(0, 40) + '...'}</div><div class="note-timestamp">Last edit: ${timestampText}</div>`;
-                        notesContainer.appendChild(noteCard);
-                    });
-                }
-            };
+        startButton.addEventListener('click', () => {
+            startButton.classList.add('loading');
+            startButton.disabled = true;
 
-            const applyTheme = (theme) => {
-                if (theme === 'dark') { body.classList.add('dark-theme'); themeToggleSwitch.checked = true; } 
-                else { body.classList.remove('dark-theme'); themeToggleSwitch.checked = false; }
-            };
-            themeToggleSwitch.addEventListener('change', () => {
-                const newTheme = themeToggleSwitch.checked ? 'dark' : 'light';
-                localStorage.setItem('theme', newTheme);
-                applyTheme(newTheme);
-            });
-
-            const openSidenav = () => { sidenav.classList.add('open'); sidenavOverlay.classList.add('visible'); };
-            const closeSidenav = () => { sidenav.classList.remove('open'); sidenavOverlay.classList.remove('visible'); };
-            
-            const openEditorForNew = () => { editorView.removeAttribute('data-editing-note-id'); editorTitle.value = ''; editorText.value = ''; editorView.classList.add('active'); };
-            const openEditorForEdit = (noteId) => {
-                const note = notes.find(n => n.id === noteId);
-                if (note) {
-                    editorTitle.value = note.title;
-                    editorText.value = note.content;
-                    editorView.dataset.editingNoteId = note.id;
-                    editorView.classList.add('active');
-                }
-            };
-            const closeEditor = () => editorView.classList.remove('active');
-
-            const saveOrUpdateNote = () => {
-                const title = editorTitle.value.trim();
-                const content = editorText.value.trim();
-                const editingNoteId = editorView.dataset.editingNoteId;
-                const currentTime = Date.now();
-
-                if (!title && !content) {
-                    if (editingNoteId) { notes = notes.filter(n => n.id !== editingNoteId); }
-                } else if (editingNoteId) {
-                    const noteIndex = notes.findIndex(n => n.id === editingNoteId);
-                    if (noteIndex > -1) {
-                        const updatedNote = { ...notes[noteIndex], title, content, modifiedTimestamp: currentTime };
-                        notes.splice(noteIndex, 1);
-                        notes.unshift(updatedNote);
-                    }
-                } else {
-                    const newNote = { id: 'note-' + currentTime, title, content, createdTimestamp: currentTime, modifiedTimestamp: currentTime };
-                    notes.unshift(newNote);
-                }
-                saveNotes();
-                renderNotes();
-            };
-
-            const openNoteView = (noteId) => {
-                const note = notes.find(n => n.id === noteId);
-                if (note) {
-                    noteViewTitle.textContent = note.title;
-                    noteViewContent.textContent = note.content;
-                    noteView.classList.add('active');
-                }
-            };
-            const closeNoteView = () => noteView.classList.remove('active');
-
-            const activateSearchMode = () => { mainHeader.classList.add('is-searching'); searchInput.focus(); };
-            const deactivateSearchMode = () => { mainHeader.classList.remove('is-searching'); searchInput.value = ''; renderNotes(); };
-            const filterNotes = (searchTerm) => {
-                const term = searchTerm.toLowerCase();
-                const filteredNotes = notes.filter(note => note.title.toLowerCase().includes(term) || note.content.toLowerCase().includes(term));
-                notesContainer.innerHTML = '';
-                filteredNotes.forEach(note => {
-                    const timestampText = new Date(note.modifiedTimestamp).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) + ', ' + new Date(note.modifiedTimestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                    const noteCard = document.createElement('div');
-                    noteCard.className = 'note-card';
-                    noteCard.dataset.noteId = note.id;
-                    noteCard.innerHTML = `<div class="note-title">${note.title || note.content.substring(0, 40) + '...'}</div><div class="note-timestamp">Last edit: ${timestampText}</div>`;
-                    notesContainer.appendChild(noteCard);
-                });
-            };
-
-            const openSortDialog = () => sortDialogOverlay.classList.add('visible');
-            const closeSortDialog = () => sortDialogOverlay.classList.remove('visible');
-            const sortNotes = () => {
-                const selectedOption = document.querySelector('input[name="sort-option"]:checked').value;
-                notes.sort((a, b) => {
-                    switch (selectedOption) {
-                        case 'edit-date-newest': return b.modifiedTimestamp - a.modifiedTimestamp;
-                        case 'edit-date-oldest': return a.modifiedTimestamp - b.modifiedTimestamp;
-                        case 'title-az': return a.title.localeCompare(b.title);
-                        case 'title-za': return b.title.localeCompare(a.title);
-                        case 'creation-date-newest': return b.createdTimestamp - a.createdTimestamp;
-                        case 'creation-date-oldest': return a.createdTimestamp - b.createdTimestamp;
-                        default: return 0;
+            setTimeout(() => {
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        // If user is already signed in
+                        window.location.href = 'home.html';
+                    } else {
+                        // If no user is signed in
+                        window.location.href = 'login.html';
                     }
                 });
-                saveNotes();
-                renderNotes();
-                closeSortDialog();
-            };
-            
-            const showContextMenu = (event, card) => {
-                event.preventDefault();
-                activeNoteCardId = card.dataset.noteId;
-                const pos = { x: event.clientX || event.touches[0].clientX, y: event.clientY || event.touches[0].clientY };
-                contextMenu.style.top = `${pos.y}px`;
-                contextMenu.style.left = `${pos.x}px`;
-                contextMenu.classList.add('show');
-            };
-            const hideContextMenu = () => { contextMenu.classList.remove('show'); activeNoteCardId = null; };
-            const handlePressStart = (e) => {
-                const card = e.target.closest('.note-card');
-                if (card) { longPressTimer = setTimeout(() => showContextMenu(e, card), 500); }
-            };
-            const cancelLongPress = () => clearTimeout(longPressTimer);
-            
-            fab.addEventListener('click', openEditorForNew);
-            backButton.addEventListener('click', () => { saveOrUpdateNote(); closeEditor(); });
-            updateNoteButton.addEventListener('click', () => { saveOrUpdateNote(); closeEditor(); });
-            noteViewBackButton.addEventListener('click', closeNoteView);
-            searchIconButton.addEventListener('click', activateSearchMode);
-            searchBackButton.addEventListener('click', deactivateSearchMode);
-            searchInput.addEventListener('input', () => filterNotes(searchInput.value));
-            sortButton.addEventListener('click', openSortDialog);
-            sortCancelButton.addEventListener('click', closeSortDialog);
-            sortDialogOverlay.addEventListener('click', (e) => { if (e.target === sortDialogOverlay) closeSortDialog(); });
-            sortConfirmButton.addEventListener('click', sortNotes);
-            notesContainer.addEventListener('click', (e) => {
-                if (contextMenu.classList.contains('show')) { hideContextMenu(); return; }
-                const card = e.target.closest('.note-card');
-                if (card) openNoteView(card.dataset.noteId);
-            });
-            notesContainer.addEventListener('mousedown', handlePressStart); notesContainer.addEventListener('touchstart', handlePressStart);
-            notesContainer.addEventListener('mouseup', cancelLongPress); notesContainer.addEventListener('mouseleave', cancelLongPress);
-            notesContainer.addEventListener('touchend', cancelLongPress); notesContainer.addEventListener('touchmove', cancelLongPress);
-            document.getElementById('menu-edit').addEventListener('click', () => { if (activeNoteCardId) openEditorForEdit(activeNoteCardId); hideContextMenu(); });
-            document.getElementById('menu-delete').addEventListener('click', () => { if (activeNoteCardId) { notes = notes.filter(n => n.id !== activeNoteCardId); saveNotes(); renderNotes(); } hideContextMenu(); });
-            document.getElementById('menu-share').addEventListener('click', () => {
-                if (activeNoteCardId) {
-                    const note = notes.find(n => n.id === activeNoteCardId);
-                    if (note) { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`*${note.title}*\n\n${note.content}`)}`); }
-                }
-                hideContextMenu();
-            });
-            document.getElementById('menu-cancel').addEventListener('click', hideContextMenu);
-            menuIconButton.addEventListener('click', openSidenav);
-            sidenavOverlay.addEventListener('click', closeSidenav);
-            moreIconButton.addEventListener('click', (e) => { e.stopPropagation(); moreMenu.classList.toggle('show'); });
-            window.addEventListener('click', () => { if (moreMenu.classList.contains('show')) moreMenu.classList.remove('show'); if (contextMenu.classList.contains('show')) hideContextMenu(); });
-
-            // Initial Load
-            applyTheme(localStorage.getItem('theme') || 'light');
-            loadNotes();
-            renderNotes();
+            }, 3000); // 3 seconds delay
         });
     </script>
+
 </body>
 </html>
